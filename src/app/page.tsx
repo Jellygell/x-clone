@@ -1,103 +1,113 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import React, { useState } from 'react';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import RegisterModal from '@/components/modals/RegisterModal';
+import LoginModal from '@/components/modals/LoginModal';
+
+const SecondaryLayout = () => {
+  const router = useRouter();
+  const [showRegister, setShowRegister] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
+
+  const handleSwitchToLogin = () => {
+    setShowRegister(false);
+    setTimeout(() => setShowLogin(true), 300); // tunggu animasi modal tutup
+  };
+
+  const handleSwitchToRegister = () => {
+    setShowLogin(false);
+    setTimeout(() => setShowRegister(true), 300);
+  };
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className="flex h-fit w-screen flex-col justify-between md:h-full md:max-h-screen">
+      <div className="flex flex-col md:h-fit md:flex-row">
+        {/* Banner kiri */}
+        <div className="relative h-[300px] w-full md:h-[95vh] md:w-[40vw] lg:w-[65vw]">
+          <Image
+            className="h-full w-full object-cover"
+            src="/assets/images/X_logo.jpg"
+            width={1920}
+            height={1080}
+            alt="banner"
+          />
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
+
+        {/* Form kanan */}
+        <div className="flex flex-col gap-5 self-center px-12 py-8 text-black bg-white md:w-[60vw] md:justify-center lg:w-[55vw]">
           <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+            src="/assets/images/logo.png"
+            width={60}
+            height={60}
+            alt="logo"
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+
+          <h1 className="my-5 text-4xl font-bold md:my-8 md:w-fit md:text-6xl">
+            Happening now
+          </h1>
+          <h4 className="text-2xl font-bold md:text-4xl">
+            Join today.
+          </h4>
+
+          <div className="flex w-[300px] flex-col gap-4">
+            <button
+              onClick={() => setShowRegister(true)}
+              className="w-full rounded-full bg-blue-500 px-4 py-2 mt-7 text-white font-semibold hover:bg-blue-400 cursor-pointer"
+            >
+              Create Account
+            </button>
+
+            {/* Modal Register & Login */}
+            <RegisterModal
+              isOpen={showRegister}
+              onClose={() => setShowRegister(false)}
+              onSwitchToLogin={handleSwitchToLogin}
+            />
+            <LoginModal
+              isOpen={showLogin}
+              onClose={() => setShowLogin(false)}
+              onSwitchToRegister={handleSwitchToRegister}
+            />
+
+            <p className="text-xs text-neutral-500">
+              By signing up, you agree to the
+              <a href="/" className="text-blue-500 hover:underline">
+                &nbsp;Terms of Service&nbsp;
+              </a>
+              and
+              <a href="/" className="text-blue-500 hover:underline">
+                &nbsp;Privacy Policy
+              </a>
+              , including
+              <a href="/" className="text-blue-500 hover:underline">
+                &nbsp;Cookie Use&nbsp;
+              </a>
+              .
+            </p>
+
+            <div className="my-10 flex w-full flex-col gap-4">
+              <h4 className="text-black text-base font-semibold">
+                Already have an account?
+              </h4>
+              <button
+                onClick={() => setShowLogin(true)}
+                className="w-full rounded-full border border-gray-400 px-4 py-2 text-blue-500 font-bold hover:bg-gray-100 cursor-pointer"
+              >
+                Sign In
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <footer className="bg-neutral-200 text-center text-sm text-neutral-500 py-4">
+        <p>&copy; 2025 X Clone. All rights reserved.</p>
       </footer>
     </div>
   );
-}
+};
+
+export default SecondaryLayout;
