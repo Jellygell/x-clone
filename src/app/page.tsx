@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import RegisterModal from '@/components/modals/RegisterModal';
 import LoginModal from '@/components/modals/LoginModal';
@@ -13,7 +14,7 @@ const SecondaryLayout = () => {
 
   const handleSwitchToLogin = () => {
     setShowRegister(false);
-    setTimeout(() => setShowLogin(true), 300); // tunggu animasi modal tutup
+    setTimeout(() => setShowLogin(true), 300);
   };
 
   const handleSwitchToRegister = () => {
@@ -73,17 +74,17 @@ const SecondaryLayout = () => {
 
             <p className="text-xs text-neutral-500">
               By signing up, you agree to the
-              <a href="/" className="text-blue-500 hover:underline">
+              <Link href="/" className="text-blue-500 hover:underline">
                 &nbsp;Terms of Service&nbsp;
-              </a>
+              </Link>
               and
-              <a href="/" className="text-blue-500 hover:underline">
+              <Link href="/" className="text-blue-500 hover:underline">
                 &nbsp;Privacy Policy
-              </a>
+              </Link>
               , including
-              <a href="/" className="text-blue-500 hover:underline">
+              <Link href="/" className="text-blue-500 hover:underline">
                 &nbsp;Cookie Use&nbsp;
-              </a>
+              </Link>
               .
             </p>
 
