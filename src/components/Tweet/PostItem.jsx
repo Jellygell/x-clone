@@ -7,6 +7,7 @@ import { db } from '@/firebase/firebase';
 import { doc, updateDoc, arrayUnion, arrayRemove, getDoc } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import CommentModal from '../modals/CommentModal';
+import Link from 'next/link';
 
 export default function PostItem({ post }) {
   const router = useRouter();
@@ -38,6 +39,7 @@ export default function PostItem({ post }) {
         if (userSnap.exists()) {
           const data = userSnap.data();
           setPostUser({
+            uid: post.authorId,
             name: data.name || 'Unknown',
             username: data.username || 'unknown',
             avatar: data.photoURL || '/default-avatar.png',
@@ -104,15 +106,30 @@ export default function PostItem({ post }) {
           isHovered ? 'bg-neutral-100' : ''
         }`}
       >
-        <img
-          src={user.avatar}
-          alt={user.name}
-          className="w-12 h-12 rounded-full object-cover"
-        />
+        <Link
+          href={`/user/${user.uid}`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <img
+            src={user.avatar}
+            alt={user.name}
+            className="w-12 h-12 rounded-full object-cover"
+          />
+        </Link>
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            <p className="font-bold">{user.name}</p>
-            <p className="text-gray-500 text-sm">@{user.username}</p>
+          <Link
+            href={`/user/${user.uid}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="font-bold hover:underline">{user.name}</p>
+          </Link>
+          <Link
+            href={`/user/${user.uid}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-gray-500 text-sm hover:underline">@{user.username}</p>
+          </Link>
           </div>
 
           <p className="my-2 mb-3">

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { collection, getDocs, doc, updateDoc, arrayUnion, arrayRemove, getDoc } from 'firebase/firestore';
 import { db } from '@/firebase/firebase';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import Link from 'next/link';
 
 export default function RightSidebar() {
   const [users, setUsers] = useState([]);
@@ -48,7 +49,9 @@ export default function RightSidebar() {
   // Toggle Follow / Unfollow
   const handleFollow = async (targetUserId) => {
     if (!currentUser) return;
+
     const currentUserRef = doc(db, 'Users', currentUser.uid);
+    const targetUserRef = doc(db, 'Users', targetUserId);
     const isFollowing = following.includes(targetUserId);
 
     try {
@@ -58,6 +61,9 @@ export default function RightSidebar() {
         await updateDoc(currentUserRef, {
           following: arrayRemove(targetUserId),
         });
+        await updateDoc(targetUserRef, {
+          followers: arrayRemove(currentUser.uid),
+        });
         setFollowing((prev) => prev.filter((id) => id !== targetUserId));
       } else {
         // Follow
@@ -65,12 +71,16 @@ export default function RightSidebar() {
         await updateDoc(currentUserRef, {
           following: arrayUnion(targetUserId),
         });
+        await updateDoc(targetUserRef, {
+          followers: arrayUnion(currentUser.uid),
+        });
         setFollowing((prev) => [...prev, targetUserId]);
       }
     } catch (error) {
-      console.error('Error updating follow:', error);
+      console.error('Error updating follow/followers:', error);
     }
   };
+
 
   return (
     <aside className="w-72 hidden lg:flex flex-col sticky top-0 h-screen p-6 border-l border-gray-200 bg-white">
@@ -82,7 +92,10 @@ export default function RightSidebar() {
             const isFollowing = following.includes(user.id);
             return (
               <div key={user.id} className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
+                <Link
+                  href={`/user/${user.id}`}
+                  className="flex items-center gap-3 hover:bg-gray-100 p-1 rounded-md transition"
+                >
                   <img
                     src={user.photoURL || '/default-avatar.png'}
                     alt={user.name}
@@ -92,7 +105,7 @@ export default function RightSidebar() {
                     <p className="text-sm font-semibold">{user.name}</p>
                     <p className="text-xs text-gray-500">@{user.username}</p>
                   </div>
-                </div>
+                </Link>
                 <button
                   onClick={() => handleFollow(user.id)}
                   className={`px-3 py-1 rounded-full text-xs font-semibold border ${
@@ -105,7 +118,9 @@ export default function RightSidebar() {
                 </button>
               </div>
             );
-          })}
+          })
+
+        }
       </div>
     </aside>
   );

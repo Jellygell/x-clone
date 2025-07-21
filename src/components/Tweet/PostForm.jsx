@@ -101,6 +101,23 @@ export default function PostForm({ onPostSuccess, user: overrideUser }) {
 
       console.log('Post created with ID:', postRef.id);
 
+      // ✅ Kirim notifikasi ke followers
+      const userDoc = await getDoc(doc(db, 'Users', user.uid));
+      const followers = userDoc.exists() ? userDoc.data().followers || [] : [];
+
+      await Promise.all(
+        followers.map(async (followerId) => {
+          await addDoc(collection(db, 'notifications'), {
+            recipientId: followerId,
+            senderId: user.uid,
+            text: content.trim().slice(0, 100),
+            timestamp: serverTimestamp(),
+            postId: postRef.id,
+            read: false,
+          });
+        })
+      );
+
       setContent('');
       setImages([]);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -114,7 +131,7 @@ export default function PostForm({ onPostSuccess, user: overrideUser }) {
   };
 
   return (
-    <div className="flex gap-4 border-b pb-4">
+    <div className="flex gap-4 pb-4">
       <img
         src={user?.photoURL || '/default-avatar.png'}
         onError={(e) => {

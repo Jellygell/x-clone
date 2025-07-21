@@ -30,7 +30,7 @@ export default function LayoutWrapper({
   }
   return (
      <div className="flex">
-      {user && <Sidebar user={user} />}
+      {user && <Sidebar />}
       <main className="flex-1">{children}</main>
       {user && <RightSidebar />}
     </div>

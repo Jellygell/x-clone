@@ -6,6 +6,7 @@ import { auth, db } from '@/firebase/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { query, collection, where, getDocs } from 'firebase/firestore';
+import { serverTimestamp } from 'firebase/firestore';
 
 export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }) {
   const [form, setForm] = useState({
@@ -146,7 +147,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }) {
         bio: '',
         followers: [],
         following: [],
-        joinedDate: new Date().toISOString(),
+        joinedDate: serverTimestamp(),
       });
 
       router.push('/dashboard');
