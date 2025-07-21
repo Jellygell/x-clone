@@ -1,49 +1,92 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MessageCircle, Heart } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { MessageCircle, Heart, Bookmark } from 'lucide-react';
 import { db } from '@/firebase/firebase';
-import { doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, arrayRemove, getDoc } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import CommentModal from '../modals/CommentModal';
-import { useRouter } from 'next/navigation';
 
 export default function PostItem({ post }) {
-  if (!post) return null;
-
-  const user = post.user || { name: 'Unknown', username: 'unknown', avatar: '/default-avatar.png' };
-  // const comments = post.comments ?? 0;
-  const content = post.content ?? '';
+  const router = useRouter();
   const [likes, setLikes] = useState(post.likes ?? []);
+  const [bookmarks, setBookmarks] = useState(post.bookmarkedBy ?? []);
   const [commentsCount, setCommentsCount] = useState(post.comments?.length || 0);
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
-  const router = useRouter();
+  const [isHovered, setIsHovered] = useState(false);
 
   const auth = getAuth();
   const currentUser = auth.currentUser;
 
   const isLiked = currentUser ? likes.includes(currentUser.uid) : false;
+  const isBookmarked = currentUser ? bookmarks.includes(currentUser.uid) : false;
+
+  const [user, setPostUser] = useState({
+    name: 'Unknown',
+    username: 'unknown',
+    avatar: '/default-avatar.png',
+  });
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      if (!post.authorId) return;
+
+      try {
+        const userRef = doc(db, 'Users', post.authorId);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+          const data = userSnap.data();
+          setPostUser({
+            name: data.name || 'Unknown',
+            username: data.username || 'unknown',
+            avatar: data.photoURL || '/default-avatar.png',
+          });
+        }
+      } catch (err) {
+        console.error('Gagal mengambil data user untuk post:', err);
+      }
+    };
+
+    fetchUser();
+  }, [post.authorId]);
+
+
+  const content = post.content ?? '';
 
   const handleLike = async () => {
     if (!currentUser) return;
-
     const postRef = doc(db, 'posts', post.id);
     const userId = currentUser.uid;
 
     try {
       if (isLiked) {
-        await updateDoc(postRef, {
-          likes: arrayRemove(userId),
-        });
+        await updateDoc(postRef, { likes: arrayRemove(userId) });
         setLikes((prev) => prev.filter((id) => id !== userId));
       } else {
-        await updateDoc(postRef, {
-          likes: arrayUnion(userId),
-        });
+        await updateDoc(postRef, { likes: arrayUnion(userId) });
         setLikes((prev) => [...prev, userId]);
       }
     } catch (error) {
       console.error('Error updating like:', error);
+    }
+  };
+
+  const handleBookmark = async () => {
+    if (!currentUser) return;
+    const postRef = doc(db, 'posts', post.id);
+    const userId = currentUser.uid;
+
+    try {
+      if (isBookmarked) {
+        await updateDoc(postRef, { bookmarkedBy: arrayRemove(userId) });
+        setBookmarks((prev) => prev.filter((id) => id !== userId));
+      } else {
+        await updateDoc(postRef, { bookmarkedBy: arrayUnion(userId) });
+        setBookmarks((prev) => [...prev, userId]);
+      }
+    } catch (error) {
+      console.error('Error updating bookmark:', error);
     }
   };
 
@@ -53,11 +96,14 @@ export default function PostItem({ post }) {
 
   return (
     <>
-    {/* <div
-      onClick={() => router.push(`/post/${post.id}`)}
-      className="cursor-pointer border-b py-4 flex gap-4 hover:bg-gray-50"
-    > */}
-      <div className="border-b py-4 flex gap-4">
+      <div
+        onClick={() => router.push(`/post/${post.id}`)}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        className={`border-b border-gray-300 py-5 flex gap-4 relative cursor-pointer transition-colors duration-200 ${
+          isHovered ? 'bg-neutral-100' : ''
+        }`}
+      >
         <img
           src={user.avatar}
           alt={user.name}
@@ -68,35 +114,59 @@ export default function PostItem({ post }) {
             <p className="font-bold">{user.name}</p>
             <p className="text-gray-500 text-sm">@{user.username}</p>
           </div>
-          <p className="my-2">{content}</p>
+
+          <p className="my-2 mb-3">
+            {content}
+          </p>
+
           <div className="flex items-center gap-6 text-sm text-gray-500">
             <div
-                className="flex items-center gap-1 hover:text-blue-500 cursor-pointer"
-                onClick={() => setIsCommentModalOpen(true)}
-              >
-                <MessageCircle size={18} />
-                <span>{commentsCount}</span>
-              </div>
+              className="flex items-center gap-1 hover:text-blue-500 cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsCommentModalOpen(true);
+              }}
+            >
+              <MessageCircle size={18} />
+              <span>{commentsCount}</span>
+            </div>
+
             <div
               className={`flex items-center gap-1 cursor-pointer ${
                 isLiked ? 'text-red-500' : 'hover:text-red-500'
               }`}
-              onClick={handleLike}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleLike();
+              }}
             >
               <Heart size={18} fill={isLiked ? 'currentColor' : 'none'} />
               <span>{likes.length}</span>
             </div>
           </div>
         </div>
+
+        {/* Bookmark Icon */}
+        <div
+          className={`absolute right-4 top-4 cursor-pointer ${
+            isBookmarked ? 'text-blue-500' : 'text-gray-400 hover:text-blue-500'
+          }`}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleBookmark();
+          }}
+        >
+          <Bookmark size={20} fill={isBookmarked ? 'currentColor' : 'none'} />
+        </div>
       </div>
-    {/* </div> */}
-    {isCommentModalOpen && (
-      <CommentModal
-        post={post}
-        onClose={() => setIsCommentModalOpen(false)}
-        onCommentPosted={handleCommentPosted}
-      />
-    )}
+
+      {isCommentModalOpen && (
+        <CommentModal
+          post={post}
+          onClose={() => setIsCommentModalOpen(false)}
+          onCommentPosted={handleCommentPosted}
+        />
+      )}
     </>
   );
 }

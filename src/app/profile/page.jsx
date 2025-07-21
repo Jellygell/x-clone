@@ -6,6 +6,8 @@ import { db, auth } from '@/firebase/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import EditProfileModal from '@/components/modals/EditProfileModal';
 import PostList from '@/components/Tweet/PostList';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import PostItem from '@/components/Tweet/PostItem';
 
 export default function ProfilePage() {
   const [userData, setUserData] = useState(null);
@@ -13,6 +15,7 @@ export default function ProfilePage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [activeTab, setActiveTab] = useState('posts');
   const [userId, setUserId] = useState(null);
+  const [likedPosts, setLikedPosts] = useState([]);
 
   useEffect(() => {
     const fetchUser = async (uid) => {
@@ -40,6 +43,32 @@ export default function ProfilePage() {
 
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    const fetchLikedPosts = async () => {
+      if (!userId) return;
+
+      try {
+        const postsRef = collection(db, 'posts');
+        const q = query(postsRef, where('likes', 'array-contains', userId));
+        const snapshot = await getDocs(q);
+
+        const liked = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+
+        setLikedPosts(liked);
+      } catch (error) {
+        console.error('Error fetching liked posts:', error);
+      }
+    };
+
+    if (activeTab === 'likes') {
+      fetchLikedPosts();
+    }
+  }, [activeTab, userId]);
+
 
   if (loading) return <div className="text-center mt-10">Loading profile...</div>;
   if (!userData) return <div className="text-center mt-10 text-gray-500">User not found.</div>;
@@ -114,7 +143,15 @@ export default function ProfilePage() {
         {/* Post List or Likes */}
         <div className="p-4">
           {activeTab === 'posts' && <PostList userId={userId} />}
-          {activeTab === 'likes' && <div className="text-gray-400 text-center">Liked posts coming soon...</div>}
+          {activeTab === 'likes' && (
+            likedPosts.length > 0 ? (
+              likedPosts.map(post => (
+                <PostItem key={post.id} post={post} />
+              ))
+            ) : (
+              <div className="text-gray-400 text-center mt-4">Belum menyukai postingan apa pun.</div>
+            )
+          )}
         </div>
 
         {/* Modal */}

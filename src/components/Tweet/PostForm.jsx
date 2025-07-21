@@ -3,26 +3,53 @@
 import { useState, useRef, useEffect } from 'react';
 import { ImageIcon, SmileIcon, X } from 'lucide-react';
 import { db, storage } from '@/firebase/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { getAuth } from 'firebase/auth';
 
-export default function PostForm( { onPostSuccess, user: overrideUser } ) {
+export default function PostForm({ onPostSuccess, user: overrideUser }) {
   const [content, setContent] = useState('');
-  const [images, setImages] = useState([]); // array of { file, url }
+  const [images, setImages] = useState([]);
   const [isPosting, setIsPosting] = useState(false);
   const [user, setUser] = useState(null);
   const fileInputRef = useRef(null);
 
-  // Ambil user dari Firebase Auth
+  // Ambil user dari Firebase Auth + Firestore (Users)
   useEffect(() => {
-  if (overrideUser) {
-    setUser(overrideUser);
-  } else {
-    const auth = getAuth();
-    setUser(auth.currentUser);
-  }
-}, [overrideUser]);
+    const fetchUser = async () => {
+      const auth = getAuth();
+      const firebaseUser = overrideUser || auth.currentUser;
+
+      if (firebaseUser) {
+        try {
+          const userRef = doc(db, 'Users', firebaseUser.uid);
+          const userSnap = await getDoc(userRef);
+
+          if (userSnap.exists()) {
+            const userData = userSnap.data();
+            setUser({
+              uid: firebaseUser.uid,
+              name: userData.name || '',
+              username: userData.username || '',
+              photoURL: userData.photoURL || '/default-avatar.png',
+            });
+          } else {
+            // fallback jika tidak ditemukan
+            setUser({
+              uid: firebaseUser.uid,
+              name: firebaseUser.displayName || '',
+              username: '',
+              photoURL: firebaseUser.photoURL || '/default-avatar.png',
+            });
+          }
+        } catch (err) {
+          console.error('Gagal mengambil data user:', err);
+        }
+      }
+    };
+
+    fetchUser();
+  }, [overrideUser]);
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files || []);
@@ -89,16 +116,21 @@ export default function PostForm( { onPostSuccess, user: overrideUser } ) {
   return (
     <div className="flex gap-4 border-b pb-4">
       <img
-        src={user?.photoURL || 'https://i.pravatar.cc/40'}
+        src={user?.photoURL || '/default-avatar.png'}
+        onError={(e) => {
+          e.target.onerror = null;
+          e.target.src = '/default-avatar.png';
+        }}
         alt="Avatar"
-        className="w-10 h-10 rounded-full"
+        className="w-10 h-10 rounded-full object-cover"
       />
+
       <div className="flex-1">
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value.slice(0, 300))}
           placeholder="What's happening?"
-          className="w-full border-none focus:ring-0 resize-none bg-transparent text-lg"
+          className="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none bg-transparent text-lg"
           rows={3}
         />
         <p className="text-sm text-gray-400 text-right">{content.length}/300</p>

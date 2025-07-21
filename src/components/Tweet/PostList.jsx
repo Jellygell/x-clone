@@ -6,7 +6,7 @@ export default function PostList( {userId = null} ) {
   const posts = usePosts(userId);
 
   return (
-    <div className="flex flex-col gap-6 p-4">
+    <div className="flex flex-col">
       {posts.length === 0 ? (
         <p className="text-center text-gray-500">Belum ada postingan.</p>
       ) : (

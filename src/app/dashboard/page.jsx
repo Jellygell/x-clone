@@ -1,22 +1,87 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PostForm from "@/components/Tweet/PostForm";
+import PostItem from "@/components/Tweet/PostItem";
 import PostList from "@/components/Tweet/PostList";
-import RightSidebar from "@/components/RightSidebar";
-import Sidebar from "@/components/Sidebar";
-import useAuth from "@/hooks/useAuth"; // ✅ Tambahkan ini
+import { db } from "@/firebase/firebase";
+import { collection, getDocs, query, where, doc, getDoc } from "firebase/firestore";
+import useAuth from "@/hooks/useAuth";
 
 export default function Dashboard() {
-  const { user } = useAuth(); // ✅ Ambil user yang login
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("foryou");
+  const [followingPosts, setFollowingPosts] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchFollowingPosts = async () => {
+      if (!user) return;
+      setLoading(true);
+
+      try {
+        const userDocRef = doc(db, "Users", user.uid);
+        const userSnap = await getDoc(userDocRef);
+
+        if (userSnap.exists()) {
+          const userData = userSnap.data();
+          const following = userData.following || [];
+
+          if (following.length === 0) {
+            setFollowingPosts([]);
+            return;
+          }
+
+          const postsQuery = query(
+            collection(db, "posts"),
+            where("authorId", "in", following)
+          );
+          const querySnapshot = await getDocs(postsQuery);
+
+          const posts = await Promise.all(
+            querySnapshot.docs.map(async (docSnap) => {
+              const postData = docSnap.data();
+              const authorId = postData.authorId;
+
+              // Ambil data user (author)
+              const authorDocRef = doc(db, "Users", authorId);
+              const authorSnap = await getDoc(authorDocRef);
+              const authorData = authorSnap.exists() ? authorSnap.data() : {};
+
+              return {
+                id: docSnap.id,
+                ...postData,
+                user: {
+                  name: authorData.name || "Unknown",
+                  username: authorData.username || "unknown",
+                  avatar: authorData.photoURL || "/default-avatar.png",
+                },
+              };
+            })
+          );
+
+          // Urutkan post berdasarkan waktu terbaru
+          posts.sort((a, b) => b.createdAt?.seconds - a.createdAt?.seconds);
+          setFollowingPosts(posts);
+        }
+      } catch (error) {
+        console.error("Gagal memuat postingan following:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+
+    if (activeTab === "following") {
+      fetchFollowingPosts();
+    }
+  }, [activeTab, user]);
 
   return (
     <div className="pl-64 flex min-h-screen">
-      {/* <Sidebar /> */}
-
-      <main className="flex-1 border-x border-gray-200 min-h-screen max-w-2xl mx-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-200 p-4">
+      <main className="flex-1 border-x border-gray-200 max-w-2xl mx-auto">
+        {/* Header with Tabs */}
+        <div className="sticky top-0 z-10 bg-white border-b border-gray-200 p-4">
           <h1 className="text-xl font-bold">Home</h1>
 
           <div className="flex mt-4">
@@ -43,18 +108,26 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Post Form */}
         <div className="p-4 border-b">
-          {/* ✅ Kirim user ke PostForm (opsional) */}
           <PostForm user={user} onPostSuccess={() => console.log("Post berhasil!")} />
         </div>
 
+        {/* Post List */}
         <div className="flex flex-col gap-6 p-4">
-          <PostList />
+          {activeTab === "foryou" && <PostList />}
+          {activeTab === "following" &&
+            (loading ? (
+              <p className="text-center text-gray-500">Loading...</p>
+            ) : followingPosts.length === 0 ? (
+              <p className="text-center text-gray-500">Belum mengikuti siapa pun.</p>
+            ) : (
+              followingPosts.map((post) => (
+                <PostItem key={post.id} post={post} />
+              ))
+            ))}
         </div>
-
       </main>
-
-      {/* <RightSidebar /> */}
     </div>
   );
 }
